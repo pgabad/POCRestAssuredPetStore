@@ -1,0 +1,46 @@
+#!/bin/bash
+
+# =====================================================================
+# Git Pre-Push Hook: Qlty (Strictly High-Level/Critical Checks Only)
+# =====================================================================
+
+# Color codes for output
+RED='\033[0;31m'
+GREEN='\033[0;32m'
+YELLOW='\033[0;33m'
+BLUE='\033[0;34m'
+NC='\033[0m' # No Color
+
+echo -e "${BLUE}=====================================================${NC}"
+echo -e "${BLUE}             Running Pre-Push Verification           ${NC}"
+echo -e "${BLUE}=====================================================${NC}"
+
+# Locate Qlty CLI
+QLTY_BIN=""
+if command -v qlty &> /dev/null; then
+    QLTY_BIN="qlty"
+elif [ -f "$HOME/.qlty/bin/qlty" ]; then
+    QLTY_BIN="$HOME/.qlty/bin/qlty"
+fi
+
+if [ -n "$QLTY_BIN" ]; then
+    echo -e "${YELLOW}🔎 Running Qlty on High/Critical Severity issues only...${NC}"
+    # Lax check: only fail on 'high' priority issues (e.g., secrets leak, critical bugs)
+    $QLTY_BIN check --fail-level high
+    QLTY_EXIT=$?
+    
+    if [ $QLTY_EXIT -ne 0 ]; then
+        echo -e "\n${RED}❌ Pre-push check failed! Critical/High severity issues were found.${NC}"
+        echo -e "${RED}Please resolve all critical quality/security issues before pushing.${NC}"
+        echo -e "${BLUE}=====================================================${NC}"
+        exit $QLTY_EXIT
+    fi
+    echo -e "${GREEN}✅ Qlty high-severity check passed successfully.${NC}"
+else
+    echo -e "\n${YELLOW}⚠️ Qlty CLI was not found on your system. Skipping pre-push quality checks.${NC}"
+fi
+
+echo -e "${BLUE}=====================================================${NC}"
+echo -e "${GREEN}🎉 Pre-push checks completed successfully! Pushing...  ${NC}"
+echo -e "${BLUE}=====================================================${NC}"
+exit 0

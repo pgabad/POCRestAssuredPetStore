@@ -1,0 +1,69 @@
+#!/bin/bash
+
+# =====================================================================
+# Git Commit-Msg Hook: Conventional Commits Validator (User Friendly)
+# =====================================================================
+
+# Color codes for output
+RED='\033[0;31m'
+GREEN='\033[0;32m'
+YELLOW='\033[0;33m'
+BLUE='\033[0;34m'
+NC='\033[0m' # No Color
+
+# The commit message file is passed as the first argument by Git
+COMMIT_MSG_FILE=$1
+COMMIT_MSG=$(cat "$COMMIT_MSG_FILE")
+
+# Regexp to match Conventional Commits format
+REGEXP="^(feat|fix|docs|style|refactor|perf|test|build|ci|chore|revert)(\([a-zA-Z0-9_-]+\))?!?: .+$"
+
+if [[ ! "$COMMIT_MSG" =~ $REGEXP ]]; then
+    echo -e "${BLUE}=====================================================================${NC}"
+    echo -e "${RED}❌ ¡EL FORMATO DEL MENSAJE DE COMMIT ES INCORRECTO!${NC}"
+    echo -e "${BLUE}=====================================================================${NC}"
+    echo -e "\nTu mensaje actual fue: \"${YELLOW}$COMMIT_MSG${NC}\""
+    
+    echo -e "\nPara mantener el historial del proyecto limpio y ordenado, utilizamos"
+    echo -e "el estándar internacional ${BLUE}Conventional Commits${NC}."
+    echo -e "No te preocupes si no eres experto en expresiones regulares, es muy sencillo de seguir."
+    
+    echo -e "\n${YELLOW}📢 CÓMO DEBE ESCRIBIRSE EL MENSAJE:${NC}"
+    echo -e "  Un mensaje correcto debe tener una de estas dos estructuras:"
+    echo -e "  1. ${GREEN}<tipo>: <descripción de tus cambios>${NC}"
+    echo -e "  2. ${GREEN}<tipo>(<componente>): <descripción de tus cambios>${NC}"
+    
+    echo -e "\n${YELLOW}🔍 EXPLICACIÓN PASO A PASO:${NC}"
+    echo -e "  • ${BLUE}<tipo>${NC} (Obligatorio): Qué tipo de cambio hiciste. Solo se permiten estos:"
+    echo -e "    - ${GREEN}feat${NC}     -> Nueva funcionalidad o característica."
+    echo -e "    - ${GREEN}fix${NC}      -> Solución de un error o bug."
+    echo -e "    - ${GREEN}docs${NC}     -> Cambios solo en la documentación (ej. README.md)."
+    echo -e "    - ${GREEN}style${NC}    -> Cambios de formato (espacios, comas, etc.) que no alteran la lógica."
+    echo -e "    - ${GREEN}refactor${NC} -> Reorganización de código (sin añadir funciones ni arreglar bugs)."
+    echo -e "    - ${GREEN}test${NC}     -> Añadir o corregir pruebas unitarias/de integración."
+    echo -e "    - ${GREEN}chore${NC}    -> Tareas de mantenimiento o herramientas (ej. actualizar pom.xml)."
+    echo -e "    - ${GREEN}build${NC}    -> Cambios en el sistema de construcción o dependencias."
+    echo -e "    - ${GREEN}ci${NC}       -> Cambios en archivos de integración continua (Github Actions, etc.)."
+    echo -e "    - ${GREEN}revert${NC}   -> Revertir un commit anterior."
+    echo -e "  • ${BLUE}(<componente>)${NC} (Opcional): El módulo o área que tocaste encerrado entre paréntesis."
+    echo -e "  • ${BLUE}: ${NC} (Obligatorio): Dos puntos seguidos de UN espacio en blanco."
+    echo -e "  • ${BLUE}<descripción>${NC} (Obligatorio): El resumen de tu cambio en lenguaje claro."
+    
+    echo -e "\n${YELLOW}💡 EJEMPLOS DE MENSAJES CORRECTOS QUE PUEDES ADAPTAR:${NC}"
+    echo -e "  • Si creas algo nuevo:      ${GREEN}feat(login): agregar boton de inicio de sesion con Google${NC}"
+    echo -e "  • Si corriges un error:       ${GREEN}fix(api): solucionar error de conexion al endpoint de mascotas${NC}"
+    echo -e "  • Si escribes documentación:  ${GREEN}docs: actualizar instrucciones de instalacion en el README${NC}"
+    echo -e "  • Si formateas código:       ${GREEN}style: aplicar formato google-java a clases de DTO${NC}"
+    echo -e "  • Si refactorizas código:    ${GREEN}refactor: simplificar el metodo de autenticacion${NC}"
+    echo -e "  • Si creas pruebas:          ${GREEN}test: agregar pruebas de integracion para alta de mascotas${NC}"
+    echo -e "  • Si actualizas Maven:       ${GREEN}chore: actualizar dependencias del proyecto en pom.xml${NC}"
+    
+    echo -e "\n${YELLOW}🛠️  ¿CÓMO LO SOLUCIONO AHORA?${NC}"
+    echo -e "  Vuelve a ejecutar tu commit escribiendo el mensaje con el formato correcto."
+    echo -e "  Ejemplo: ${CYAN}git commit -m \"feat: mi primer mensaje correcto\"${NC}"
+    echo -e "${BLUE}=====================================================================${NC}"
+    exit 1
+fi
+
+echo -e "${GREEN}✅ El formato del mensaje de commit es válido y sigue Conventional Commits.${NC}"
+exit 0

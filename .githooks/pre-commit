@@ -1,0 +1,86 @@
+#!/bin/bash
+
+# =====================================================================
+# Git Pre-Commit Hook: Spotless (Formatting) & Qlty (Code Quality)
+# =====================================================================
+
+# Color codes for output
+RED='\033[0;31m'
+GREEN='\033[0;32m'
+YELLOW='\033[0;33m'
+BLUE='\033[0;34m'
+NC='\033[0m' # No Color
+
+echo -e "${BLUE}=====================================================${NC}"
+echo -e "${BLUE}           Running Pre-Commit Verification           ${NC}"
+echo -e "${BLUE}=====================================================${NC}"
+
+# 1. Check for staged Java files
+STAGED_JAVA_FILES=$(git diff --cached --name-only --diff-filter=d | grep '\.java$')
+
+if [ -n "$STAGED_JAVA_FILES" ]; then
+    echo -e "${YELLOW}🔍 Staged Java files detected:${NC}"
+    echo "$STAGED_JAVA_FILES" | sed 's/^/  - /'
+    
+    # 2. Run Spotless Formatter
+    echo -e "\n${YELLOW}🧹 Running Spotless Formatter...${NC}"
+    mvn spotless:apply
+    SPOTLESS_EXIT=$?
+    
+    if [ $SPOTLESS_EXIT -ne 0 ]; then
+        echo -e "${RED}❌ Spotless formatting failed. Please review the errors.${NC}"
+        exit $SPOTLESS_EXIT
+    fi
+    
+    # Re-stage files that were formatted by Spotless
+    for file in $STAGED_JAVA_FILES; do
+        if [ -f "$file" ]; then
+            git add "$file"
+        fi
+    done
+    echo -e "${GREEN}✅ Spotless formatting completed and files re-staged.${NC}"
+else
+    echo -e "${GREEN}ℹ️ No staged Java files detected for formatting.${NC}"
+fi
+
+# 3. Locate Qlty CLI
+QLTY_BIN=""
+if command -v qlty &> /dev/null; then
+    QLTY_BIN="qlty"
+elif [ -f "$HOME/.qlty/bin/qlty" ]; then
+    QLTY_BIN="$HOME/.qlty/bin/qlty"
+fi
+
+if [ -n "$QLTY_BIN" ]; then
+    echo -e "\n${YELLOW}🔎 Running Qlty Code Quality Checks...${NC}"
+    
+    # If there are staged Java files, run check specifically on them to avoid pre-existing legacy issues
+    if [ -n "$STAGED_JAVA_FILES" ]; then
+        echo -e "${YELLOW}Checking staged files only...${NC}"
+        # We replace newlines with spaces to pass files as arguments to qlty
+        STAGED_FILES_SPACE_SEPARATED=$(echo "$STAGED_JAVA_FILES" | tr '\n' ' ')
+        $QLTY_BIN check --fail-level medium $STAGED_FILES_SPACE_SEPARATED
+        QLTY_EXIT=$?
+    else
+        # Otherwise run general qlty check on any changed files
+        $QLTY_BIN check --fail-level medium
+        QLTY_EXIT=$?
+    fi
+    
+    if [ $QLTY_EXIT -ne 0 ]; then
+        echo -e "\n${RED}❌ Qlty check failed with issues of Medium severity or higher.${NC}"
+        echo -e "${RED}Please fix the code quality issues above before committing.${NC}"
+        echo -e "${YELLOW}💡 You can run: qlty check --fix to let Qlty auto-fix issues if supported.${NC}"
+        echo -e "${BLUE}=====================================================${NC}"
+        exit $QLTY_EXIT
+    fi
+    echo -e "${GREEN}✅ Qlty code quality check passed.${NC}"
+else
+    echo -e "\n${YELLOW}⚠️ Qlty CLI was not found on your system.${NC}"
+    echo -e "${YELLOW}Please install it to run code quality checks locally: curl -L https://qlty.sh/install | sh${NC}"
+fi
+
+echo -e "${BLUE}=====================================================${NC}"
+echo -e "${GREEN}🎉 All pre-commit checks passed! Committing code...  ${NC}"
+echo -e "${BLUE}=====================================================${NC}"
+exit 0
